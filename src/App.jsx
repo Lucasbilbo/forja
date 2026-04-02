@@ -15,30 +15,56 @@ function App() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [cargando, setCargando] = useState(true)
+  const [errorCarga, setErrorCarga] = useState(false)
   const [pantalla, setPantalla] = useState('mundo')
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session)
-      if (session) {
-        const p = await getOrCreateProfile(session.user.id).catch(() => null)
-        setProfile(p)
-        if (p) await crearMisionesDelDiaSeNeeded(session.user.id)
-      }
-      setCargando(false)
-    })
+    // Timeout de seguridad: si en 10s no carga, mostrar error
+    const timeout = setTimeout(() => {
+      setCargando(prev => {
+        if (prev) {
+          console.error('[App] Timeout: la carga tardó más de 10 segundos')
+          setErrorCarga(true)
+          return false
+        }
+        return prev
+      })
+    }, 10000)
+
+    supabase.auth.getSession()
+      .then(async ({ data }) => {
+        const session = data?.session ?? null
+        setSession(session)
+        if (session) {
+          const p = await getOrCreateProfile(session.user.id).catch(e => {
+            console.error('[App] Error cargando perfil:', e.message)
+            return null
+          })
+          setProfile(p)
+          if (p) await crearMisionesDelDiaSeNeeded(session.user.id)
+        }
+        setCargando(false)
+      })
+      .catch(e => {
+        console.error('[App] Error en getSession:', e.message)
+        setCargando(false)
+      })
+      .finally(() => clearTimeout(timeout))
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session)
       if (session) {
-        const p = await getOrCreateProfile(session.user.id).catch(() => null)
+        const p = await getOrCreateProfile(session.user.id).catch(e => {
+          console.error('[App] Error cargando perfil (onAuthStateChange):', e.message)
+          return null
+        })
         setProfile(p)
       } else {
         setProfile(null)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
   }, [])
 
   async function crearMisionesDelDiaSeNeeded(userId) {
@@ -67,6 +93,26 @@ function App() {
         <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--fg2)', letterSpacing: '0.1em' }}>
           FORJANDO...
         </div>
+      </div>
+    </div>
+  )
+
+  if (errorCarga) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center', padding: '0 24px' }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--fg2)', marginBottom: 8 }}>
+          Error al conectar
+        </div>
+        <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 20 }}>
+          No se pudo cargar la app. Revisa tu conexión e inténtalo de nuevo.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          style={{ background: 'var(--primary)', color: 'var(--primary-fg)', border: 'none', borderRadius: 'var(--radius)', padding: '10px 24px', fontSize: 15, fontWeight: 700 }}
+        >
+          Reintentar
+        </button>
       </div>
     </div>
   )
