@@ -1,0 +1,88 @@
+/* ── Fuentes ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-sans: 'Source Sans 3', system-ui, sans-serif;
+
+  --bg: #1a1208;
+  --bg2: #241a0e;
+  --bg3: #2e2010;
+  --card: #2a1c0c;
+  --card2: #332214;
+  --border: #4a3218;
+  --border2: #5c3e20;
+
+  --primary: #c8820a;
+  --primary-light: #e8a83a;
+  --primary-dark: #8a5a06;
+  --primary-fg: #1a0e02;
+
+  --fg: #f0e6cc;
+  --fg2: #c8a96e;
+  --muted: #7a6040;
+  --muted2: #5a4830;
+
+  --arena: #c84a1a;
+  --arena-light: #e86c3a;
+  --arena-bg: #2a1008;
+
+  --torre: #4a6cc8;
+  --torre-light: #6a8ce8;
+  --torre-bg: #0c1428;
+
+  --taller: #3aa854;
+  --taller-light: #5ac874;
+  --taller-bg: #081a10;
+
+  --success: #4a8a3a;
+  --xp-color: #d4a430;
+
+  --radius: 8px;
+  --radius-lg: 14px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.5);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+#root { min-height: 100vh; }
+
+h1, h2, h3 { font-family: var(--font-serif); font-weight: 700; letter-spacing: 0.03em; }
+button { cursor: pointer; font-family: var(--font-sans); }
+input, textarea, select {
+  font-family: var(--font-sans);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 15px;
+  outline: none;
+  width: 100%;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes xpBounce { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes levelUp { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+.fade-in { animation: fadeIn 0.3s ease forwards; }
+.xp-bounce { animation: xpBounce 0.4s ease; }
+.level-up { animation: levelUp 0.6s ease; }
+
+.xp-bar { height: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; }
+.xp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary-dark), var(--primary-light)); border-radius: 99px; transition: width 0.5s ease; }
