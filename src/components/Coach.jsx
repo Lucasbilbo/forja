@@ -29,9 +29,8 @@ export default function Coach({ userId, profile }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [mensajes])
 
-  async function enviar() {
-    if (!input.trim() || cargando) return
-    const texto = input.trim()
+  async function enviarTexto(texto) {
+    if (!texto || cargando) return
     setInput('')
     setCargando(true)
 
@@ -67,6 +66,10 @@ export default function Coach({ userId, profile }) {
     } finally {
       setCargando(false)
     }
+  }
+
+  function enviar() {
+    enviarTexto(input.trim())
   }
 
   return (
@@ -125,6 +128,15 @@ export default function Coach({ userId, profile }) {
 
       {/* Input */}
       <div style={{ background: 'var(--bg2)', borderTop: '1px solid var(--border)', padding: '12px 16px', paddingBottom: 'calc(80px + 12px)', flexShrink: 0 }}>
+        <div style={{ maxWidth: 680, margin: '0 auto', marginBottom: 8 }}>
+          <button
+            onClick={() => enviarTexto('Dame el briefing semanal completo')}
+            disabled={cargando}
+            style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--fg2)', borderRadius: 20, padding: '6px 14px', fontSize: 13, cursor: cargando ? 'default' : 'pointer', opacity: cargando ? 0.5 : 1 }}
+          >
+            📋 Briefing semanal
+          </button>
+        </div>
         <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', gap: 8 }}>
           <input
             style={{ flex: 1, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 24, color: 'var(--fg)', padding: '10px 16px', fontSize: 14, outline: 'none' }}

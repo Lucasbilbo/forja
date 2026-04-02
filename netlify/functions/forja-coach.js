@@ -8,7 +8,8 @@ const CORS = {
 
 const FUNCTION_SECRET = process.env.FORJA_SECRET
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
-const MAX_TOKENS = 1000
+const MAX_TOKENS_DEFAULT = 1000
+const MAX_TOKENS_BRIEFING = 2000
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' }
@@ -36,9 +37,13 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'API key no configurada' }) }
   }
 
+  const ultimoMensaje = messages[messages.length - 1]?.content || ''
+  const esBriefing = ultimoMensaje.toLowerCase().includes('briefing semanal')
+  const maxTokens = esBriefing ? MAX_TOKENS_BRIEFING : MAX_TOKENS_DEFAULT
+
   const body = JSON.stringify({
     model: CLAUDE_MODEL,
-    max_tokens: MAX_TOKENS,
+    max_tokens: maxTokens,
     system: system || 'Eres el Coach Forja, un coach personal integrado.',
     messages: messages.slice(-12),
   })

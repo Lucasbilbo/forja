@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import { getOrCreateProfile } from './lib/profile'
+import { getMisionesHoy, crearMision } from './lib/misiones'
 import Login from './components/Login'
 import BarraPersonaje from './components/BarraPersonaje'
 import NavBar from './components/NavBar'
@@ -22,6 +23,7 @@ function App() {
       if (session) {
         const p = await getOrCreateProfile(session.user.id).catch(() => null)
         setProfile(p)
+        if (p) await crearMisionesDelDiaSeNeeded(session.user.id)
       }
       setCargando(false)
     })
@@ -38,6 +40,20 @@ function App() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  async function crearMisionesDelDiaSeNeeded(userId) {
+    try {
+      const hoy = await getMisionesHoy(userId)
+      if (hoy.length > 0) return
+      await Promise.all([
+        crearMision(userId, { edificio: 'arena', titulo: 'Entrenamiento del día', descripcion: 'Completa tu sesión de entrenamiento', xpRecompensa: 20 }),
+        crearMision(userId, { edificio: 'torre', titulo: 'Dedicar 20 min a aprender algo', descripcion: 'Libro, curso, concepto o video', xpRecompensa: 20 }),
+        crearMision(userId, { edificio: 'taller', titulo: 'Avanzar en un proyecto activo', descripcion: 'Al menos una tarea concreta en TriCoach o Forja', xpRecompensa: 20 }),
+      ])
+    } catch (e) {
+      console.error('[App] Error creando misiones diarias:', e.message)
+    }
+  }
 
   function handleNavegar(pantalla) {
     window.scrollTo(0, 0)

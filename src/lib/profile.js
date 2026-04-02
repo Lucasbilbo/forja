@@ -15,6 +15,13 @@ export async function getOrCreateProfile(userId) {
       .select()
       .single()
     if (createErr) throw createErr
+
+    // Auto-create initial projects
+    await supabase.from('forja_proyectos').insert([
+      { user_id: userId, nombre: 'TriCoach', descripcion: 'Entrenador IA para triatletas', activo: true, xp_acumulado: 0 },
+      { user_id: userId, nombre: 'Forja', descripcion: 'OS personal gamificado', activo: true, xp_acumulado: 0 },
+    ])
+
     return created
   }
   if (error) throw error

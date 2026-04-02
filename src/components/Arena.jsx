@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 import { getMisionesPorEdificio, crearMision, completarMision, eliminarMision } from '../lib/misiones'
 import { ganarXP, actualizarRacha } from '../lib/xp'
 import MisionItem from './MisionItem'
 import ToastXP from './ToastXP'
+
+const DIAS_ES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+function getLunesDeLaSemana() {
+  const hoy = new Date()
+  const dia = hoy.getDay()
+  const diffLunes = (dia === 0 ? -6 : 1 - dia)
+  const lunes = new Date(hoy)
+  lunes.setDate(hoy.getDate() + diffLunes)
+  return lunes.toISOString().split('T')[0]
+}
 
 export default function Arena({ userId, profile, onProfileUpdate }) {
   const [misiones, setMisiones] = useState([])
@@ -10,11 +22,42 @@ export default function Arena({ userId, profile, onProfileUpdate }) {
   const [desc, setDesc] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [toast, setToast] = useState(null)
+  const [sesionTricoach, setSesionTricoach] = useState(null)
+  const [sesionXpDada, setSesionXpDada] = useState(false)
 
   useEffect(() => {
     if (!userId) return
     getMisionesPorEdificio(userId, 'arena').then(setMisiones).catch(() => {})
+    cargarSesionTricoach()
   }, [userId])
+
+  async function cargarSesionTricoach() {
+    try {
+      const lunes = getLunesDeLaSemana()
+      const { data } = await supabase
+        .from('plans')
+        .select('sesiones')
+        .eq('user_id', userId)
+        .eq('semana', lunes)
+        .single()
+      if (!data?.sesiones) return
+      const hoy = DIAS_ES[new Date().getDay()]
+      const sesion = data.sesiones.find(s => s.dia === hoy)
+      if (sesion) {
+        setSesionTricoach(sesion)
+        // Auto-completar XP si ya estaba completada en TriCoach
+        if (sesion.completada && !sesionXpDada) {
+          setSesionXpDada(true)
+          const nuevaRacha = await actualizarRacha(userId)
+          const resultado = await ganarXP(userId, 50, 'arena', nuevaRacha > 0)
+          onProfileUpdate?.(resultado.profile)
+          setToast({ ...resultado, xpGanado: 50 })
+        }
+      }
+    } catch {
+      // plans table puede no existir para este usuario — ignorar
+    }
+  }
 
   async function handleCompletar(mision) {
     try {
@@ -103,21 +146,65 @@ export default function Arena({ userId, profile, onProfileUpdate }) {
       </div>
 
       {/* Integración TriCoach */}
-      <div style={{
-        background: 'rgba(200,74,26,0.06)',
-        border: '1px dashed var(--arena)',
-        borderRadius: 'var(--radius)',
-        padding: '12px 16px',
-        marginBottom: 16,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        fontSize: 13,
-        color: 'var(--muted)',
-      }}>
-        <span>🔗</span>
-        <span>Integración con TriCoach — próximamente las sesiones completadas en Strava añadirán XP automáticamente</span>
-      </div>
+      {sesionTricoach ? (
+        <div style={{
+          background: sesionTricoach.completada ? 'rgba(34,197,94,0.08)' : 'rgba(200,74,26,0.10)',
+          border: `2px solid ${sesionTricoach.completada ? '#22c55e' : 'var(--arena)'}`,
+          borderRadius: 'var(--radius)',
+          padding: '14px 16px',
+          marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 18 }}>🏊🚴🏃</span>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 13, color: 'var(--arena-light)', fontWeight: 700, letterSpacing: '0.05em' }}>
+              SESIÓN TRICOACH HOY · 50 XP
+            </span>
+            {sesionTricoach.completada && (
+              <span style={{ marginLeft: 'auto', fontSize: 11, background: '#22c55e', color: '#fff', padding: '2px 8px', borderRadius: 99, fontWeight: 700 }}>✓ COMPLETADA</span>
+            )}
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--fg)', fontWeight: 600, marginBottom: 2 }}>
+            {sesionTricoach.tipo?.toUpperCase()} — {sesionTricoach.descripcion}
+          </div>
+          {(sesionTricoach.distancia || sesionTricoach.duracion || sesionTricoach.duracion_min) && (
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+              {sesionTricoach.distancia && `${sesionTricoach.distancia} · `}
+              {sesionTricoach.duracion || (sesionTricoach.duracion_min && `${sesionTricoach.duracion_min} min`)}
+              {sesionTricoach.intensidad && ` · ${sesionTricoach.intensidad}`}
+            </div>
+          )}
+          {!sesionTricoach.completada && (
+            <button
+              onClick={async () => {
+                const nuevaRacha = await actualizarRacha(userId)
+                const resultado = await ganarXP(userId, 50, 'arena', nuevaRacha > 0)
+                onProfileUpdate?.(resultado.profile)
+                setToast({ ...resultado, xpGanado: 50 })
+                setSesionTricoach(prev => ({ ...prev, completada: true }))
+              }}
+              style={{ marginTop: 10, background: 'var(--arena)', color: '#fff', border: 'none', borderRadius: 'var(--radius)', padding: '7px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              Marcar como completada (+50 XP)
+            </button>
+          )}
+        </div>
+      ) : (
+        <div style={{
+          background: 'rgba(200,74,26,0.04)',
+          border: '1px dashed var(--border)',
+          borderRadius: 'var(--radius)',
+          padding: '10px 14px',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: 12,
+          color: 'var(--muted)',
+        }}>
+          <span>🔗</span>
+          <span>Sin sesión TriCoach para hoy</span>
+        </div>
+      )}
 
       {/* Misiones */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
