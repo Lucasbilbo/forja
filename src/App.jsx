@@ -33,7 +33,15 @@ function App() {
 
     supabase.auth.getSession()
       .then(async ({ data }) => {
-        const session = data?.session ?? null
+        let session = data?.session ?? null
+
+        // Segundo intento si la sesión no está lista aún (storageKey personalizado puede tardar)
+        if (!session) {
+          await new Promise(r => setTimeout(r, 500))
+          const retry = await supabase.auth.getSession().catch(() => ({ data: {} }))
+          session = retry.data?.session ?? null
+        }
+
         setSession(session)
         if (session) {
           const p = await getOrCreateProfile(session.user.id).catch(e => {
