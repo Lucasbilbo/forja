@@ -155,7 +155,12 @@ export default function Torre({ userId, profile, onProfileUpdate }) {
           <button type="button" onClick={() => setShowFormM(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '8px', color: 'var(--muted)', fontSize: 14 }}>✕</button>
         </form>
       )}
-      {misiones.length > 0 && (
+      {misiones.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--muted)', fontSize: 14, marginBottom: 8 }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>📚</div>
+          El mago necesita conocimiento. ¿Qué vas a aprender hoy?
+        </div>
+      ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
           {misiones.map(m => <MisionItem key={m.id} mision={m} colorAccent="var(--torre)" onCompletar={handleCompletarMision} onEliminar={async m => { await eliminarMision(m.id).catch(() => {}); setMisiones(prev => prev.filter(x => x.id !== m.id)) }} />)}
         </div>

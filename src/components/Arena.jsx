@@ -300,7 +300,7 @@ export default function Arena({ userId, profile, onProfileUpdate }) {
       {misiones.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)', fontSize: 14 }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>⚔️</div>
-          Sin misiones hoy. ¡Crea la primera!
+          ⚔️ El campo de batalla te espera. ¿Cuál es el entrenamiento de hoy?
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

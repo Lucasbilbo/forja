@@ -114,7 +114,7 @@ export default function Taller({ userId, profile, onProfileUpdate }) {
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--muted)', fontSize: 14, marginBottom: 20 }}>
-          Sin misiones hoy. ¡Añade algo para construir!
+          ⚒️ Las herramientas esperan. ¿Qué vas a construir hoy?
         </div>
       )}
 

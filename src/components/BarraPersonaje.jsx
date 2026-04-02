@@ -1,4 +1,4 @@
-import { progresoBarra, calcularNivel } from '../lib/profile'
+import { progresoBarra } from '../lib/profile'
 
 export default function BarraPersonaje({ profile, onNavegar }) {
   if (!profile) return null
@@ -21,19 +21,28 @@ export default function BarraPersonaje({ profile, onNavegar }) {
 
         {/* Nombre + nivel */}
         <div style={{ flexShrink: 0 }}>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--primary-light)', fontWeight: 700 }}>
-            {profile.nombre || 'Lucas'}
+          <div style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 18,
+            color: 'var(--primary-light)',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            lineHeight: 1.1,
+          }}>
+            {(profile.nombre || 'Lucas').toUpperCase()}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', letterSpacing: '0.05em' }}>
-            NIV. {nivel}
+          <div style={{ fontSize: 12, color: 'var(--muted)', letterSpacing: '0.06em' }}>
+            NIV. <span style={{ color: 'var(--primary-light)', fontWeight: 700, fontSize: 14 }}>{nivel}</span>
           </div>
         </div>
 
         {/* Barra XP */}
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: 'var(--muted)' }}>XP</span>
-            <span style={{ fontSize: 11, color: 'var(--xp-color)' }}>{xpTotal % 200}/{200}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.06em' }}>XP</span>
+            <span style={{ fontSize: 10, color: 'var(--xp-color)', fontWeight: 600 }}>
+              {xpTotal % 200} / 200
+            </span>
           </div>
           <div className="xp-bar">
             <div className="xp-bar-fill" style={{ width: `${pct}%` }} />
@@ -45,23 +54,35 @@ export default function BarraPersonaje({ profile, onNavegar }) {
           flexShrink: 0,
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          background: racha > 0 ? 'rgba(200, 130, 10, 0.15)' : 'var(--bg3)',
-          border: `1px solid ${racha > 0 ? 'var(--primary-dark)' : 'var(--border)'}`,
+          gap: 3,
+          background: racha > 0 ? 'rgba(200, 130, 10, 0.18)' : 'var(--bg3)',
+          border: `1px solid ${racha > 0 ? 'var(--primary)' : 'var(--border)'}`,
           borderRadius: 'var(--radius)',
-          padding: '4px 10px',
+          padding: '5px 10px',
         }}>
-          <span style={{ fontSize: 16 }}>🔥</span>
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: racha > 0 ? 'var(--primary-light)' : 'var(--muted)', fontWeight: 700 }}>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>🔥</span>
+          <span style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 18,
+            color: racha > 0 ? 'var(--primary-light)' : 'var(--muted)',
+            fontWeight: 700,
+            lineHeight: 1,
+          }}>
             {racha}
           </span>
         </div>
 
-        {/* Stats rápidos */}
-        <div style={{ flexShrink: 0, display: 'flex', gap: 8, fontSize: 11 }}>
-          <span title="Cuerpo" style={{ color: 'var(--arena-light)' }}>⚔️{profile.stat_cuerpo || 0}</span>
-          <span title="Mente" style={{ color: 'var(--torre-light)' }}>✨{profile.stat_mente || 0}</span>
-          <span title="Ejecución" style={{ color: 'var(--taller-light)' }}>🔨{profile.stat_ejecucion || 0}</span>
+        {/* Stats */}
+        <div style={{ flexShrink: 0, display: 'flex', gap: 10, fontSize: 12 }}>
+          <span title="Cuerpo" style={{ color: 'var(--arena-light)', fontWeight: 600 }}>
+            ⚔️ {profile.stat_cuerpo || 0}
+          </span>
+          <span title="Mente" style={{ color: 'var(--torre-light)', fontWeight: 600 }}>
+            📚 {profile.stat_mente || 0}
+          </span>
+          <span title="Ejecución" style={{ color: 'var(--taller-light)', fontWeight: 600 }}>
+            ⚒️ {profile.stat_ejecucion || 0}
+          </span>
         </div>
       </div>
     </div>
