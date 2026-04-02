@@ -24,12 +24,33 @@ export default function Arena({ userId, profile, onProfileUpdate }) {
   const [toast, setToast] = useState(null)
   const [sesionTricoach, setSesionTricoach] = useState(null)
   const [sesionXpDada, setSesionXpDada] = useState(false)
+  const [forma, setForma] = useState(null)
 
   useEffect(() => {
     if (!userId) return
     getMisionesPorEdificio(userId, 'arena').then(setMisiones).catch(() => {})
     cargarSesionTricoach()
+    cargarForma()
   }, [userId])
+
+  async function cargarForma() {
+    try {
+      const res = await fetch(`/.netlify/functions/intervals?action=wellness&days=1`, {
+        headers: { 'x-forja-secret': import.meta.env.VITE_FORJA_SECRET || '' },
+      })
+      if (!res.ok) return
+      const data = await res.json()
+      if (!Array.isArray(data) || data.length === 0) return
+      const ultimo = data[data.length - 1]
+      const ctl = ultimo.ctl ?? null
+      const atl = ultimo.atl ?? null
+      const tsb = (ctl !== null && atl !== null) ? ctl - atl : (ultimo.tsb ?? null)
+      if (tsb === null) return
+      setForma({ ctl: Math.round(ctl ?? 0), atl: Math.round(atl ?? 0), tsb: Math.round(tsb) })
+    } catch {
+      // silencioso
+    }
+  }
 
   async function cargarSesionTricoach() {
     try {
@@ -144,6 +165,21 @@ export default function Arena({ userId, profile, onProfileUpdate }) {
           <div style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.05em' }}>CUERPO</div>
         </div>
       </div>
+
+      {/* Banner forma del día — Intervals.icu */}
+      {forma && (() => {
+        const { ctl, atl, tsb } = forma
+        const config = tsb > 5
+          ? { bg: 'rgba(22,101,52,0.25)', border: '#16a34a', emoji: '🟢', estado: 'Fresco — buen día para apretar' }
+          : tsb >= -10
+          ? { bg: 'rgba(113,63,18,0.25)', border: '#ca8a04', emoji: '🟡', estado: 'Neutro — entrena con cabeza' }
+          : { bg: 'rgba(127,29,29,0.25)', border: '#dc2626', emoji: '🔴', estado: 'Fatigado — considera sesión suave' }
+        return (
+          <div style={{ background: config.bg, border: `1px solid ${config.border}`, borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 12, fontSize: 13, color: 'var(--fg2)' }}>
+            Forma hoy: {config.emoji} {config.estado} · CTL {ctl} · ATL {atl} · TSB {tsb}
+          </div>
+        )
+      })()}
 
       {/* Integración TriCoach */}
       {sesionTricoach ? (

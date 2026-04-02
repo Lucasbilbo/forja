@@ -1,5 +1,34 @@
 const https = require('https')
 
+const INTERVALS_ATHLETE_ID = process.env.INTERVALS_ATHLETE_ID
+const INTERVALS_KEY        = process.env.INTERVALS_API_KEY
+
+function getIntervalsWellness() {
+  if (!INTERVALS_ATHLETE_ID || !INTERVALS_KEY) return Promise.resolve(null)
+  const auth    = Buffer.from(`API_KEY:${INTERVALS_KEY}`).toString('base64')
+  const today   = new Date().toISOString().slice(0, 10)
+  const path    = `/api/v1/athlete/${INTERVALS_ATHLETE_ID}/wellness?oldest=${today}&newest=${today}`
+  return new Promise((resolve) => {
+    https.get({ hostname: 'intervals.icu', path, headers: { Authorization: `Basic ${auth}` } }, (res) => {
+      let data = ''
+      res.on('data', chunk => data += chunk)
+      res.on('end', () => {
+        try {
+          const arr = JSON.parse(data)
+          if (!Array.isArray(arr) || arr.length === 0) return resolve(null)
+          const w = arr[arr.length - 1]
+          const ctl = w.ctl ?? null
+          const atl = w.atl ?? null
+          const tsb = (ctl !== null && atl !== null) ? ctl - atl : (w.tsb ?? null)
+          if (tsb === null) return resolve(null)
+          const estado = tsb > 5 ? 'fresco' : tsb >= -10 ? 'neutro' : 'fatigado'
+          resolve({ ctl: Math.round(ctl ?? 0), atl: Math.round(atl ?? 0), tsb: Math.round(tsb), estado })
+        } catch { resolve(null) }
+      })
+    }).on('error', () => resolve(null))
+  })
+}
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, x-forja-secret',
@@ -41,10 +70,16 @@ exports.handler = async (event) => {
   const esBriefing = ultimoMensaje.toLowerCase().includes('briefing semanal')
   const maxTokens = esBriefing ? MAX_TOKENS_BRIEFING : MAX_TOKENS_DEFAULT
 
+  const wellness = await getIntervalsWellness()
+  let systemFinal = system || 'Eres el Coach Forja, un coach personal integrado.'
+  if (wellness) {
+    systemFinal += `\n\nESTADO DE FORMA HOY (Intervals.icu): CTL ${wellness.ctl}, ATL ${wellness.atl}, TSB ${wellness.tsb} — ${wellness.estado}`
+  }
+
   const body = JSON.stringify({
     model: CLAUDE_MODEL,
     max_tokens: maxTokens,
-    system: system || 'Eres el Coach Forja, un coach personal integrado.',
+    system: systemFinal,
     messages: messages.slice(-12),
   })
 

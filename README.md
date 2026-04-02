@@ -13,10 +13,26 @@ OS personal gamificado para uso exclusivo de Lucas. La vida real se convierte en
 
 ## Setup
 
-### 1. Copiar .env
-```bash
-cp .env.example .env   # rellenar con claves reales
-```
+### 1. Variables de entorno
+
+**Frontend (`VITE_*` en `.env`):**
+
+| Variable | Descripción |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | URL del proyecto Supabase |
+| `VITE_SUPABASE_ANON_KEY` | Clave anon de Supabase |
+| `VITE_FORJA_SECRET` | Secreto compartido para autenticar las Netlify Functions |
+
+**Backend (Netlify env vars):**
+
+| Variable | Descripción |
+|----------|-------------|
+| `SUPABASE_URL` | URL del proyecto Supabase |
+| `SUPABASE_SERVICE_KEY` | Clave de servicio de Supabase |
+| `ANTHROPIC_API_KEY` | API key de Anthropic para el Coach Forja |
+| `FORJA_SECRET` | Secreto compartido para validar llamadas al backend |
+| `INTERVALS_ATHLETE_ID` | ID del atleta en Intervals.icu (p.ej. `i12345`) |
+| `INTERVALS_API_KEY` | API key de Intervals.icu (se encuentra en Configuración → API) |
 
 ### 2. Supabase — crear tablas
 Ver el SQL completo en el README extendido o en forja_plan.md.
