@@ -39,10 +39,12 @@ function App() {
         clearTimeout(timeout)
         setSession(session)
         if (session) {
+          console.log('[App] Llamando getOrCreateProfile...')
           const p = await getOrCreateProfile(session.user.id).catch(e => {
             console.error('[App] Error cargando perfil:', e.message)
             return null
           })
+          console.log('[App] getOrCreateProfile resolvió:', !!p)
           setProfile(p)
           if (p) await crearMisionesDelDiaSeNeeded(session.user.id).catch(() => {})
         } else {
