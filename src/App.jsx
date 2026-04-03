@@ -19,29 +19,21 @@ function App() {
   const [pantalla, setPantalla] = useState('mundo')
 
   useEffect(() => {
-    // Timeout de seguridad: si en 10s no carga, mostrar error
     const timeout = setTimeout(() => {
       setCargando(prev => {
         if (prev) {
-          console.error('[App] Timeout: la carga tardó más de 10 segundos')
+          console.error('[App] Timeout: la carga tardó más de 15 segundos')
           setErrorCarga(true)
           return false
         }
         return prev
       })
-    }, 10000)
+    }, 15000)
 
-    supabase.auth.getSession()
-      .then(async ({ data }) => {
-        let session = data?.session ?? null
-
-        // Segundo intento si la sesión no está lista aún (storageKey personalizado puede tardar)
-        if (!session) {
-          await new Promise(r => setTimeout(r, 500))
-          const retry = await supabase.auth.getSession().catch(() => ({ data: {} }))
-          session = retry.data?.session ?? null
-        }
-
+    // Escuchar cambios de auth PRIMERO — se dispara automáticamente si hay sesión en localStorage
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        clearTimeout(timeout)
         setSession(session)
         if (session) {
           const p = await getOrCreateProfile(session.user.id).catch(e => {
@@ -49,28 +41,20 @@ function App() {
             return null
           })
           setProfile(p)
-          if (p) await crearMisionesDelDiaSeNeeded(session.user.id)
+          if (p) await crearMisionesDelDiaSeNeeded(session.user.id).catch(() => {})
+        } else {
+          setProfile(null)
         }
         setCargando(false)
-      })
-      .catch(e => {
-        console.error('[App] Error en getSession:', e.message)
-        setCargando(false)
-      })
-      .finally(() => clearTimeout(timeout))
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session)
-      if (session) {
-        const p = await getOrCreateProfile(session.user.id).catch(e => {
-          console.error('[App] Error cargando perfil (onAuthStateChange):', e.message)
-          return null
-        })
-        setProfile(p)
-      } else {
-        setProfile(null)
       }
-    })
+    )
+
+    // Luego verificar sesión existente — si no hay sesión, desbloquear la carga
+    supabase.auth.getSession()
+      .then(({ data }) => {
+        if (!data?.session) setCargando(false)
+      })
+      .catch(() => setCargando(false))
 
     return () => { subscription.unsubscribe(); clearTimeout(timeout) }
   }, [])
