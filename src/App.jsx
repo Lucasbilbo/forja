@@ -33,27 +33,36 @@ function App() {
     console.log('[App] Iniciando carga')
 
     // Escuchar cambios de auth PRIMERO — se dispara automáticamente si hay sesión en localStorage
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[App] onAuthStateChange event:', event, 'session:', !!session)
-        clearTimeout(timeout)
-        setSession(session)
-        if (session) {
-          console.log('[App] Llamando getOrCreateProfile...')
-          const p = await getOrCreateProfile(session.user.id).catch(e => {
+    // IMPORTANTE: las queries a Supabase deben hacerse FUERA del callback con setTimeout(0)
+    // porque supabase-js 2.x mantiene un lock interno durante el evento que bloquea las queries
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[App] onAuthStateChange event:', event, 'session:', !!session)
+      setSession(session)
+      if (session) {
+        // Salir del callback antes de hacer queries — evita deadlock en supabase-js 2.x
+        setTimeout(async () => {
+          try {
+            console.log('[App] Llamando getOrCreateProfile...')
+            const p = await getOrCreateProfile(session.user.id)
+            console.log('[App] getOrCreateProfile resolvió:', !!p)
+            setProfile(p)
+            if (p) await crearMisionesDelDiaSeNeeded(session.user.id).catch(() => {})
+          } catch (e) {
             console.error('[App] Error cargando perfil:', e.message)
-            return null
-          })
-          console.log('[App] getOrCreateProfile resolvió:', !!p)
-          setProfile(p)
-          if (p) await crearMisionesDelDiaSeNeeded(session.user.id).catch(() => {})
-        } else {
-          setProfile(null)
-        }
+            setProfile(null)
+          } finally {
+            console.log('[App] setCargando false')
+            clearTimeout(timeout)
+            setCargando(false)
+          }
+        }, 0)
+      } else {
+        setProfile(null)
+        clearTimeout(timeout)
         console.log('[App] setCargando false')
         setCargando(false)
       }
-    )
+    })
 
     // Luego verificar sesión existente — si no hay sesión, desbloquear la carga
     supabase.auth.getSession()
