@@ -19,8 +19,8 @@ export async function getSugerenciaActiva(userId) {
     .is('completado', false)
     .order('fecha_sugerencia', { ascending: false })
     .limit(1)
-    .single()
-  if (error && error.code !== 'PGRST116') throw error
+    .maybeSingle()
+  if (error) throw error
   return data || null
 }
 
