@@ -1,18 +1,11 @@
 import { supabase } from './supabase'
 
 export async function getOrCreateProfile(userId) {
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Timeout al cargar perfil')), 8000)
-  )
-
-  const queryPromise = supabase
+  const { data, error } = await supabase
     .from('forja_profile')
     .select('*')
     .eq('user_id', userId)
     .maybeSingle()
-
-  const { data, error } = await Promise.race([queryPromise, timeoutPromise])
-    .catch(e => ({ data: null, error: e }))
 
   if (error) {
     console.error('[profile] Error en query:', error.message)
@@ -20,14 +13,12 @@ export async function getOrCreateProfile(userId) {
   }
 
   if (!data) {
-    // No existe — crear perfil nuevo
     const { data: created, error: createErr } = await supabase
       .from('forja_profile')
       .insert({ user_id: userId, nombre: 'Lucas' })
       .select()
       .single()
     if (createErr) throw createErr
-
     const today = new Date().toISOString().split('T')[0]
     seedInitialData(userId, today).catch(e =>
       console.error('[profile] Error seeding:', e.message)
