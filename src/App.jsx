@@ -30,9 +30,12 @@ function App() {
       })
     }, 15000)
 
+    console.log('[App] Iniciando carga')
+
     // Escuchar cambios de auth PRIMERO — se dispara automáticamente si hay sesión en localStorage
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[App] onAuthStateChange event:', event, 'session:', !!session)
         clearTimeout(timeout)
         setSession(session)
         if (session) {
@@ -45,6 +48,7 @@ function App() {
         } else {
           setProfile(null)
         }
+        console.log('[App] setCargando false')
         setCargando(false)
       }
     )
@@ -52,7 +56,11 @@ function App() {
     // Luego verificar sesión existente — si no hay sesión, desbloquear la carga
     supabase.auth.getSession()
       .then(({ data }) => {
-        if (!data?.session) setCargando(false)
+        console.log('[App] getSession result:', !!data?.session)
+        if (!data?.session) {
+          console.log('[App] setCargando false')
+          setCargando(false)
+        }
       })
       .catch(() => setCargando(false))
 
