@@ -8,7 +8,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storageKey: 'forja-auth-token',
     redirectTo: import.meta.env.VITE_APP_URL || window.location.origin,
   },
 })
