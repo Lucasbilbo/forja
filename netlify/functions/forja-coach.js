@@ -1,5 +1,37 @@
 const https = require('https')
 
+function supabaseGet(path) {
+  const supabaseUrl = process.env.SUPABASE_URL || ''
+  const supabaseKey = process.env.SUPABASE_SERVICE_KEY || ''
+  if (!supabaseUrl || !supabaseKey) return Promise.resolve(null)
+  const hostname = new URL(supabaseUrl).hostname
+  return new Promise((resolve) => {
+    https.get({
+      hostname,
+      path: `/rest/v1/${path}`,
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+      }
+    }, (res) => {
+      let data = ''
+      res.on('data', chunk => data += chunk)
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)) } catch { resolve(null) }
+      })
+    }).on('error', () => resolve(null))
+  })
+}
+
+async function getForjaCuentas(userId) {
+  if (!userId) return null
+  const cuentas = await supabaseGet(`forja_cuentas?user_id=eq.${userId}&estado=eq.activa&select=nombre,industria,proximos_pasos,ultima_reunion&order=ultima_reunion.desc&limit=10`)
+  if (!Array.isArray(cuentas) || cuentas.length === 0) return null
+  const hoy = new Date().toISOString().split('T')[0]
+  const reuniones = await supabaseGet(`forja_reuniones?user_id=eq.${userId}&fecha=gte.${hoy}&select=cuenta_id,fecha,acuerdos&order=fecha.asc&limit=5`)
+  return { cuentas, reuniones: Array.isArray(reuniones) ? reuniones : [] }
+}
+
 const INTERVALS_ATHLETE_ID = process.env.INTERVALS_ATHLETE_ID
 const INTERVALS_KEY        = process.env.INTERVALS_API_KEY
 
@@ -56,7 +88,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'JSON inválido' }) }
   }
 
-  const { messages, system } = parsed
+  const { messages, system, userId } = parsed
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'messages requerido' }) }
   }
@@ -70,10 +102,25 @@ exports.handler = async (event) => {
   const esBriefing = ultimoMensaje.toLowerCase().includes('briefing semanal')
   const maxTokens = esBriefing ? MAX_TOKENS_BRIEFING : MAX_TOKENS_DEFAULT
 
-  const wellness = await getIntervalsWellness()
+  const [wellness, forjaCuentasData] = await Promise.all([
+    getIntervalsWellness(),
+    getForjaCuentas(userId),
+  ])
   let systemFinal = system || 'Eres el Coach Forja, un coach personal integrado.'
   if (wellness) {
     systemFinal += `\n\nESTADO DE FORMA HOY (Intervals.icu): CTL ${wellness.ctl}, ATL ${wellness.atl}, TSB ${wellness.tsb} — ${wellness.estado}`
+  }
+  if (forjaCuentasData && forjaCuentasData.cuentas.length > 0) {
+    const cuentasTexto = forjaCuentasData.cuentas
+      .map(c => `- ${c.nombre}${c.industria ? ` (${c.industria})` : ''}${c.proximos_pasos ? ` → ${c.proximos_pasos}` : ''}`)
+      .join('\n')
+    systemFinal += `\n\nCUENTAS ACTIVAS:\n${cuentasTexto}`
+    if (forjaCuentasData.reuniones.length > 0) {
+      const reunionesTexto = forjaCuentasData.reuniones
+        .map(r => `- ${r.fecha}${r.acuerdos ? `: ${r.acuerdos}` : ''}`)
+        .join('\n')
+      systemFinal += `\n\nPróximas reuniones:\n${reunionesTexto}`
+    }
   }
 
   const body = JSON.stringify({

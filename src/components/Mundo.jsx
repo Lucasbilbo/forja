@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getMisionesHoy } from '../lib/misiones'
 
 function nivelEdificio(statValue) {
@@ -36,30 +36,73 @@ function BuildingLabel({ nombre, nivel, misiones, color }) {
   const completadas = misiones.filter(m => m.completada).length
   const allDone = total > 0 && completadas === total
   const hasPending = total > 0 && completadas < total
-  const badgeColor = allDone ? '#4a8a3a' : color
+  const borderColor = allDone ? 'rgba(74,200,100,0.5)' : hasPending ? color : 'rgba(90,60,20,0.4)'
 
   return (
     <div style={{
-      marginTop: 8,
-      background: 'rgba(10,8,4,0.88)',
-      border: `1px solid ${hasPending ? color : 'rgba(90,60,20,0.6)'}`,
-      borderRadius: 20,
-      padding: '4px 14px',
+      marginTop: 10,
+      background: 'rgba(0,0,0,0.75)',
+      border: `1px solid ${borderColor}`,
+      borderRadius: 8,
+      padding: '8px 12px',
       textAlign: 'center',
-      backdropFilter: 'blur(6px)',
-      minWidth: 90,
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      minWidth: 110,
     }}>
-      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 10, color, letterSpacing: '0.1em', fontWeight: 700, whiteSpace: 'nowrap' }}>
-        {nombre.toUpperCase()}
+      <div style={{
+        fontFamily: 'var(--font-serif)',
+        fontSize: 11,
+        color: hasPending ? color : allDone ? '#4ac864' : 'var(--fg2)',
+        letterSpacing: '0.08em',
+        fontWeight: 700,
+        whiteSpace: 'nowrap',
+        marginBottom: 5,
+      }}>
+        {nombre}
       </div>
-      <div style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.06em', marginTop: 1 }}>
-        NIV. <span style={{ color: 'var(--primary-light)', fontWeight: 700 }}>{nivel}</span>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center' }}>
+        <span style={{
+          fontSize: 10,
+          color: 'var(--primary-light)',
+          fontWeight: 600,
+          letterSpacing: '0.04em',
+          whiteSpace: 'nowrap',
+        }}>
+          ⭐ NIV. {nivel}
+        </span>
         {total > 0 && (
-          <span style={{ color: badgeColor, marginLeft: 5, fontWeight: 700 }}>
-            {completadas}/{total}
+          <span style={{
+            fontSize: 10,
+            color: allDone ? '#4ac864' : hasPending ? color : 'var(--muted)',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+          }}>
+            📋 {completadas}/{total}
           </span>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Star particles for Torre ──────────────────────────────────────────────────
+
+function StarParticle({ delay, drift, top, left }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      top,
+      left,
+      fontSize: 9,
+      color: 'rgba(160,190,255,0.9)',
+      animation: `starFloat 2.2s ease-out ${delay}s infinite`,
+      '--drift': `${drift}px`,
+      pointerEvents: 'none',
+      zIndex: 15,
+      textShadow: '0 0 6px rgba(160,190,255,0.8)',
+    }}>
+      ✦
     </div>
   )
 }
@@ -89,6 +132,18 @@ function TorreEdificio({ nivel, misiones, onNavegar }) {
         '--glow-color': glowColor,
       }}
     >
+      {/* Star particles when pending */}
+      {hasPending && (
+        <>
+          <StarParticle delay={0}    drift={-14} top="28%" left="8%"  />
+          <StarParticle delay={0.5}  drift={12}  top="22%" left="80%" />
+          <StarParticle delay={1.1}  drift={-8}  top="40%" left="2%"  />
+          <StarParticle delay={1.7}  drift={10}  top="35%" left="88%" />
+          <StarParticle delay={0.8}  drift={-5}  top="18%" left="45%" />
+          <StarParticle delay={1.4}  drift={7}   top="50%" left="60%" />
+        </>
+      )}
+
       {/* Flag */}
       <div style={{ marginBottom: -2 }}>
         <Flag color="var(--torre)" />
@@ -172,6 +227,8 @@ function ArenaEdificio({ nivel, misiones, onNavegar }) {
   const hasPending = misiones.some(m => !m.completada)
   const allDone = misiones.length > 0 && misiones.every(m => m.completada)
   const glowColor = allDone ? 'rgba(74,180,100,0.5)' : hasPending ? 'rgba(200,74,26,0.65)' : 'none'
+  // Intense flame effect when sessions are pending (TriCoach sessions)
+  const flameActive = hasPending
 
   return (
     <div
@@ -186,7 +243,7 @@ function ArenaEdificio({ nivel, misiones, onNavegar }) {
         alignItems: 'center',
         zIndex: 10,
         userSelect: 'none',
-        animation: hasPending ? 'missionGlow 2.5s ease-in-out infinite' : 'none',
+        animation: flameActive ? 'arenaFlame 1.8s ease-in-out infinite' : allDone ? 'missionGlow 2.5s ease-in-out infinite' : 'none',
         '--glow-color': glowColor,
       }}
     >
@@ -336,7 +393,6 @@ function TallerEdificio({ nivel, misiones, onNavegar }) {
           border: '2px solid #4a7838',
           boxShadow: 'inset 0 0 8px rgba(60,180,80,0.25)',
         }}>
-          {/* Window cross */}
           <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, background: '#4a7838' }} />
           <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 1, background: '#4a7838' }} />
         </div>
@@ -386,7 +442,6 @@ function TallerEdificio({ nivel, misiones, onNavegar }) {
 function Tree({ style, sway = '3s' }) {
   return (
     <div style={{ ...style, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
-      {/* Top layer */}
       <div style={{
         width: 0, height: 0,
         borderLeft: '16px solid transparent',
@@ -395,7 +450,6 @@ function Tree({ style, sway = '3s' }) {
         animation: `windSway ${sway} ease-in-out infinite`,
         transformOrigin: 'bottom center',
       }} />
-      {/* Middle layer */}
       <div style={{
         width: 0, height: 0,
         borderLeft: '22px solid transparent',
@@ -405,7 +459,6 @@ function Tree({ style, sway = '3s' }) {
         animation: `windSway ${sway} ease-in-out 0.3s infinite`,
         transformOrigin: 'bottom center',
       }} />
-      {/* Bottom layer */}
       <div style={{
         width: 0, height: 0,
         borderLeft: '26px solid transparent',
@@ -415,7 +468,6 @@ function Tree({ style, sway = '3s' }) {
         animation: `windSway ${sway} ease-in-out 0.6s infinite`,
         transformOrigin: 'bottom center',
       }} />
-      {/* Trunk */}
       <div style={{ width: 8, height: 14, background: '#2a1a0a', marginTop: -2 }} />
     </div>
   )
@@ -435,35 +487,11 @@ function Paths() {
           <feGaussianBlur stdDeviation="0.5" />
         </filter>
       </defs>
-      {/* Torre → Arena */}
-      <path
-        d="M 50 28 Q 18 52 16 72"
-        stroke="#3a2810" strokeWidth="5" fill="none"
-        strokeLinecap="round" opacity="0.55" filter="url(#pathBlur)"
-      />
-      {/* Torre → Taller */}
-      <path
-        d="M 50 28 Q 82 52 84 72"
-        stroke="#3a2810" strokeWidth="5" fill="none"
-        strokeLinecap="round" opacity="0.55" filter="url(#pathBlur)"
-      />
-      {/* Arena → Taller */}
-      <path
-        d="M 22 80 Q 50 93 78 80"
-        stroke="#3a2810" strokeWidth="4" fill="none"
-        strokeLinecap="round" opacity="0.4" filter="url(#pathBlur)"
-      />
-      {/* Lighter center highlight on paths */}
-      <path
-        d="M 50 28 Q 18 52 16 72"
-        stroke="#5a3e18" strokeWidth="2" fill="none"
-        strokeLinecap="round" opacity="0.25"
-      />
-      <path
-        d="M 50 28 Q 82 52 84 72"
-        stroke="#5a3e18" strokeWidth="2" fill="none"
-        strokeLinecap="round" opacity="0.25"
-      />
+      <path d="M 50 28 Q 18 52 16 72" stroke="#3a2810" strokeWidth="5" fill="none" strokeLinecap="round" opacity="0.55" filter="url(#pathBlur)" />
+      <path d="M 50 28 Q 82 52 84 72" stroke="#3a2810" strokeWidth="5" fill="none" strokeLinecap="round" opacity="0.55" filter="url(#pathBlur)" />
+      <path d="M 22 80 Q 50 93 78 80" stroke="#3a2810" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.4" filter="url(#pathBlur)" />
+      <path d="M 50 28 Q 18 52 16 72" stroke="#5a3e18" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.25" />
+      <path d="M 50 28 Q 82 52 84 72" stroke="#5a3e18" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.25" />
     </svg>
   )
 }
@@ -472,10 +500,22 @@ function Paths() {
 
 export default function Mundo({ userId, profile, onNavegar }) {
   const [misionesHoy, setMisionesHoy] = useState([])
+  const [showFloatXP, setShowFloatXP] = useState(false)
+  const isFirstLoadRef = useRef(true)
+  const prevCompletadasRef = useRef(0)
 
   useEffect(() => {
     if (!userId) return
-    getMisionesHoy(userId).then(setMisionesHoy).catch(() => {})
+    getMisionesHoy(userId).then(misiones => {
+      const completadas = misiones.filter(m => m.completada).length
+      if (!isFirstLoadRef.current && completadas > prevCompletadasRef.current) {
+        setShowFloatXP(true)
+        setTimeout(() => setShowFloatXP(false), 2200)
+      }
+      isFirstLoadRef.current = false
+      prevCompletadasRef.current = completadas
+      setMisionesHoy(misiones)
+    }).catch(() => {})
   }, [userId])
 
   const misionesArena = misionesHoy.filter(m => m.edificio === 'arena')
@@ -484,6 +524,7 @@ export default function Mundo({ userId, profile, onNavegar }) {
 
   const completadas = misionesHoy.filter(m => m.completada).length
   const total = misionesHoy.length
+  const racha = profile?.racha || 0
 
   return (
     <div style={{
@@ -556,10 +597,30 @@ export default function Mundo({ userId, profile, onNavegar }) {
       <Tree style={{ position: 'absolute', bottom: '37%', left: '36%', zIndex: 3, transform: 'scale(0.65)' }} sway="3s" />
       <Tree style={{ position: 'absolute', bottom: '37%', right: '36%', zIndex: 3, transform: 'scale(0.7)' }} sway="3.2s" />
 
+      {/* Racha del día */}
+      {racha > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 20,
+          fontFamily: 'var(--font-serif)',
+          fontSize: 11,
+          color: '#e8a83a',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textShadow: '0 0 12px rgba(200,130,10,0.7), 0 2px 8px rgba(0,0,0,0.9)',
+          whiteSpace: 'nowrap',
+        }}>
+          🔥 Día {racha} de racha — ¡sigue así!
+        </div>
+      )}
+
       {/* Greeting overlay */}
       <div style={{
         position: 'absolute',
-        top: 14,
+        top: racha > 0 ? 32 : 14,
         left: 16,
         zIndex: 20,
       }}>
@@ -595,33 +656,26 @@ export default function Mundo({ userId, profile, onNavegar }) {
         {new Date().toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
       </div>
 
-      {/* Coach button */}
-      <button
-        onClick={() => onNavegar('coach')}
-        style={{
+      {/* Floating XP animation on mission completion */}
+      {showFloatXP && (
+        <div style={{
           position: 'absolute',
-          bottom: 16,
+          bottom: '30%',
           left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 20,
-          background: 'rgba(14,10,4,0.88)',
-          border: '1px solid var(--border2)',
-          borderRadius: 24,
-          padding: '8px 22px',
-          color: 'var(--fg2)',
-          fontSize: 13,
-          fontWeight: 500,
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
+          zIndex: 50,
+          fontFamily: 'var(--font-serif)',
+          fontSize: 22,
+          fontWeight: 700,
+          color: '#e8a83a',
+          textShadow: '0 0 16px rgba(200,130,10,0.8), 0 2px 8px rgba(0,0,0,0.9)',
+          letterSpacing: '0.06em',
+          pointerEvents: 'none',
+          animation: 'xpFloat 2.2s ease-out forwards',
           whiteSpace: 'nowrap',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.6)',
-        }}
-      >
-        <span>⚗️</span>
-        Coach Forja
-      </button>
+        }}>
+          +20 XP
+        </div>
+      )}
     </div>
   )
 }

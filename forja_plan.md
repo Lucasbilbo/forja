@@ -37,6 +37,42 @@ OS personal gamificado exclusivo para Lucas. La vida real se convierte en un RPG
 
 ## Roadmap de fases
 
+### FASE 4 — Mercado (CRM trabajo) — PENDIENTE
+**Requisito previo:** Confirmar acceso Gmail / integración email.
+**Edificio:** 4º edificio en el Mundo (pendiente de construir visualmente).
+
+**Descripción:** CRM ligero para gestionar cuentas y reuniones de trabajo. El Coach Forja conoce las cuentas activas y próximas reuniones para dar contexto estratégico.
+
+**SQL a ejecutar en Supabase:**
+```sql
+CREATE TABLE forja_cuentas (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id),
+  nombre text,
+  industria text,
+  estado text DEFAULT 'activa',
+  contacto_principal text,
+  notas text,
+  proximos_pasos text,
+  ultima_reunion date,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE forja_reuniones (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id),
+  cuenta_id uuid REFERENCES forja_cuentas(id),
+  fecha date,
+  resumen text,
+  acuerdos text,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Backend ya preparado:** forja-coach.js detecta automáticamente cuentas en `forja_cuentas` e inyecta contexto en el system prompt del coach.
+
+---
+
 ### Fase 1 — Base (v0.1) ✅
 Fundamentos: auth, 3 edificios, sistema XP, coach
 
