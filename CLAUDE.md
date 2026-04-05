@@ -91,3 +91,15 @@ Backend: SUPABASE_URL, SUPABASE_SERVICE_KEY, ANTHROPIC_API_KEY, FORJA_SECRET
 - Resumen breve al terminar
 - No leer archivos que no sean necesarios
 - No explorar el proyecto entero si sabes el archivo exacto
+
+## Skills disponibles
+- bencium-innovative-ux-designer — diseño creativo y bold
+- interface-design — sistema de diseño persistente
+- tricoach-stack — stack y patrones de este proyecto
+- systematic-debugging — cuando hay bugs complejos
+- test-driven-development — para nuevas features
+- lean-startup — validar ideas antes de construir
+- hooked-ux — psicología de retención de usuarios
+- refactoring-ui — mejorar UI existente
+- ux-heuristics — auditoría de usabilidad
+- jobs-to-be-done — entender qué quiere el usuario
