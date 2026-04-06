@@ -11,13 +11,21 @@ const CORS = {
   'Content-Type': 'application/json'
 };
 
+function withTimeout(promise, ms, errorMsg) {
+  const timer = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(errorMsg)), ms)
+  );
+  return Promise.race([promise, timer]);
+}
+
 function checkAuth(event) {
+  if (!FUNCTION_SECRET) return { ok: false, misconfigured: true };
   const secret = event.headers['x-forja-secret'];
-  return !FUNCTION_SECRET || secret === FUNCTION_SECRET;
+  return { ok: secret === FUNCTION_SECRET, misconfigured: false };
 }
 
 function intervalsRequest(method, path, body) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const data = body ? JSON.stringify(body) : null;
     const options = {
       hostname: 'intervals.icu',
@@ -34,7 +42,7 @@ function intervalsRequest(method, path, body) {
       res.on('data', chunk => responseData += chunk);
       res.on('end', () => resolve({ status: res.statusCode, body: responseData }));
     });
-    req.on('error', (e) => resolve({ status: 500, body: JSON.stringify({ error: e.message }) }));
+    req.on('error', (e) => reject(e));
     if (data) req.write(data);
     req.end();
   });
@@ -42,7 +50,9 @@ function intervalsRequest(method, path, body) {
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' };
-  if (!checkAuth(event)) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) };
+  const authCheck = checkAuth(event);
+  if (authCheck.misconfigured) return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'Server misconfigured' }) };
+  if (!authCheck.ok) return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) };
 
   const params = event.queryStringParameters || {};
   const action = params.action;
@@ -52,7 +62,10 @@ exports.handler = async (event) => {
       const days = Math.min(Math.max(parseInt(params.days || '7') || 7, 1), 30);
       const newest = new Date().toISOString().slice(0, 10);
       const oldest = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-      const res = await intervalsRequest('GET', `/api/v1/athlete/${ATHLETE_ID}/wellness?oldest=${oldest}&newest=${newest}`);
+      const res = await withTimeout(
+        intervalsRequest('GET', `/api/v1/athlete/${ATHLETE_ID}/wellness?oldest=${oldest}&newest=${newest}`),
+        10000, 'Intervals timeout'
+      );
       return { statusCode: res.status, headers: CORS, body: res.body };
     }
 
@@ -60,12 +73,18 @@ exports.handler = async (event) => {
       const start = (params.start || '').replace(/[^0-9-]/g, '');
       const end   = (params.end   || '').replace(/[^0-9-]/g, '');
       if (!start || !end) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'start/end requeridos' }) };
-      const res = await intervalsRequest('GET', `/api/v1/athlete/${ATHLETE_ID}/events?oldest=${start}&newest=${end}`);
+      const res = await withTimeout(
+        intervalsRequest('GET', `/api/v1/athlete/${ATHLETE_ID}/events?oldest=${start}&newest=${end}`),
+        10000, 'Intervals timeout'
+      );
       return { statusCode: res.status, headers: CORS, body: res.body };
     }
 
     return { statusCode: 405, headers: CORS, body: 'Method Not Allowed' };
   } catch (e) {
+    if (e.message === 'Intervals timeout') {
+      return { statusCode: 408, headers: CORS, body: JSON.stringify({ error: 'Intervals.icu tardó demasiado. Inténtalo de nuevo.' }) };
+    }
     return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: e.message }) };
   }
 };

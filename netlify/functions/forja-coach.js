@@ -68,6 +68,42 @@ const CORS = {
 }
 
 const FUNCTION_SECRET = process.env.FORJA_SECRET
+
+function withTimeout(promise, ms, errorMsg) {
+  const timer = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(errorMsg)), ms)
+  )
+  return Promise.race([promise, timer])
+}
+
+function callClaude(apiKey, body) {
+  return new Promise((resolve, reject) => {
+    const req = https.request({
+      hostname: 'api.anthropic.com',
+      path: '/v1/messages',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, (res) => {
+      let data = ''
+      res.on('data', chunk => data += chunk)
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode,
+          headers: { ...CORS, 'Content-Type': 'application/json' },
+          body: data,
+        })
+      })
+    })
+    req.on('error', (e) => reject(e))
+    req.write(body)
+    req.end()
+  })
+}
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 const MAX_TOKENS_DEFAULT = 1000
 const MAX_TOKENS_BRIEFING = 2000
@@ -77,7 +113,10 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: CORS, body: 'Method Not Allowed' }
 
   const secret = event.headers['x-forja-secret']
-  if (FUNCTION_SECRET && secret !== FUNCTION_SECRET) {
+  if (!FUNCTION_SECRET) {
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: 'Server misconfigured' }) }
+  }
+  if (secret !== FUNCTION_SECRET) {
     return { statusCode: 401, headers: CORS, body: JSON.stringify({ error: 'Unauthorized' }) }
   }
 
@@ -130,32 +169,12 @@ exports.handler = async (event) => {
     messages: messages.slice(-12),
   })
 
-  return new Promise((resolve) => {
-    const req = https.request({
-      hostname: 'api.anthropic.com',
-      path: '/v1/messages',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    }, (res) => {
-      let data = ''
-      res.on('data', chunk => data += chunk)
-      res.on('end', () => {
-        resolve({
-          statusCode: res.statusCode,
-          headers: { ...CORS, 'Content-Type': 'application/json' },
-          body: data,
-        })
-      })
-    })
-    req.on('error', (e) => {
-      resolve({ statusCode: 500, headers: CORS, body: JSON.stringify({ error: e.message }) })
-    })
-    req.write(body)
-    req.end()
-  })
+  try {
+    return await withTimeout(callClaude(ANTHROPIC_KEY, body), 25000, 'Claude timeout')
+  } catch (e) {
+    if (e.message === 'Claude timeout') {
+      return { statusCode: 408, headers: CORS, body: JSON.stringify({ error: 'El coach tardó demasiado en responder. Inténtalo de nuevo.' }) }
+    }
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: e.message }) }
+  }
 }
